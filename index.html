@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CostaID - Ciência Cidadã Marinha</title>
+    <meta name="description" content="Plataforma de ciência cidadã para monitoramento da fauna marinha brasileira">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌊</text></svg>">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom Styles -->
+    <style>
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .custom-marker {
+            transition: transform 0.2s ease;
+        }
+        
+        .custom-marker:hover {
+            transform: scale(1.2);
+        }
+        
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+        
+        .line-clamp-1 {
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 1;
+        }
+        
+        .line-clamp-2 {
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+        
+        .backdrop-blur-sm {
+            backdrop-filter: blur(4px);
+        }
+        
+        .bg-white\/95 {
+            background-color: rgba(255, 255, 255, 0.95);
+        }
+        
+        .bg-white\/90 {
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .bg-white\/80 {
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        blue: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            800: '#1e40af',
+                            900: '#1e3a8a'
+                        },
+                        cyan: {
+                            50: '#ecfeff',
+                            100: '#cffafe',
+                            500: '#06b6d4',
+                            600: '#0891b2'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-blue-50 to-cyan-50">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-blue-100 shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                        <span class="text-white text-xl">🌊</span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold gradient-text">CostaID</h1>
+                        <p class="text-xs text-gray-600">Ciência Cidadã Marinha</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="#inicio" class="text-gray-700 hover:text-blue-600 transition-colors">Início</a>
+                    <a href="#sobre" class="text-gray-700 hover:text-blue-600 transition-colors">Sobre</a>
+                    <a href="#como-funciona" class="text-gray-700 hover:text-blue-600 transition-colors">Como Funciona</a>
+                    <a href="#contribua" class="text-gray-700 hover:text-blue-600 transition-colors">Contribua</a>
+                    <a href="#mapa" class="text-gray-700 hover:text-blue-600 transition-colors">Mapa</a>
+                    <a href="#blog" class="text-gray-700 hover:text-blue-600 transition-colors">Blog</a>
+                    <a href="#equipe" class="text-gray-700 hover:text-blue-600 transition-colors">Equipe</a>
+                    <button class="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all">
+                        <span>📷</span>
+                        <span>Registrar Avistamento</span>
+                    </button>
+                </nav>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden p-2">
+                    <span id="menu-icon">☰</span>
+                </button>
+            </div>
+
+            <!-- Mobile Navigation -->
+            <nav id="mobile-menu" class="md:hidden mt-4 pb-4 border-t border-blue-100 pt-4 hidden">
+                <div class="flex flex-col space-y-3">
+                    <a href="#inicio" class="text-gray-700 hover:text-blue-600 transition-colors">Início</a>
+                    <a href="#sobre" class="text-gray-700 hover:text-blue-600 transition-colors">Sobre</a>
+                    <a href="#como-funciona" class="text-gray-700 hover:text-blue-600 transition-colors">Como Funciona</a>
+                    <a href="#contribua" class="text-gray-700 hover:text-blue-600 transition-colors">Contribua</a>
+                    <a href="#mapa" class="text-gray-700 hover:text-blue-600 transition-colors">Mapa</a>
+                    <a href="#blog" class="text-gray-700 hover:text-blue-600 transition-colors">Blog</a>
+                    <a href="#equipe" class="text-gray-700 hover:text-blue-600 transition-colors">Equipe</a>
+                    <button class="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-4 py-2 rounded-lg w-full flex items-center justify-center space-x-2">
+                        <span>📷</span>
+                        <span>Registrar Avistamento</span>
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="inicio" class="py-20 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-cyan-600/10"></div>
+        <div class="container mx-auto px-4 relative">
+            <div class="text-center max-w-4xl mx-auto mb-16">
+                <h2 class="text-5xl md:text-6xl font-bold mb-6 gradient-text">
+                    Tecnologia, Ciência Cidadã e Conservação Marinha em Conexão
+                </h2>
+                <p class="text-xl text-gray-700 mb-8 leading-relaxed">
+                    Conectamos cidadãos e cientistas em uma rede colaborativa para fortalecer a conservação marinha e o
+                    monitoramento climático através de registros de fauna marinha em tempo real.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button class="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-lg px-8 py-3 rounded-lg flex items-center justify-center space-x-2">
+                        <span>📷</span>
+                        <span>Registrar Avistamento</span>
+                    </button>
+                    <button class="border-2 border-blue-300 text-blue-600 hover:bg-blue-50 text-lg px-8 py-3 rounded-lg bg-transparent flex items-center justify-center space-x-2">
+                        <span>🗺️</span>
+                        <span>Explorar Mapa</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+                <div class="text-center border border-blue-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 rounded-lg p-6">
+                    <div class="text-blue-500 text-4xl mb-3">👁️</div>
+                    <div class="text-2xl font-bold text-gray-900 mb-1">12,847</div>
+                    <div class="text-sm text-gray-600">Avistamentos Registrados</div>
+                </div>
+                <div class="text-center border border-blue-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 rounded-lg p-6">
+                    <div class="text-blue-500 text-4xl mb-3">🐟</div>
+                    <div class="text-2xl font-bold text-gray-900 mb-1">342</div>
+                    <div class="text-sm text-gray-600">Espécies Identificadas</div>
+                </div>
+                <div class="text-center border border-blue-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 rounded-lg p-6">
+                    <div class="text-blue-500 text-4xl mb-3">👥</div>
+                    <div class="text-2xl font-bold text-gray-900 mb-1">8,921</div>
+                    <div class="text-sm text-gray-600">Cientistas Cidadãos</div>
+                </div>
+                <div class="text-center border border-blue-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 rounded-lg p-6">
+                    <div class="text-blue-500 text-4xl mb-3">📍</div>
+                    <div class="text-2xl font-bold text-gray-900 mb-1">156</div>
+                    <div class="text-sm text-gray-600">Áreas Monitoradas</div>
+                </div>
+            </div>
+
+            <!-- Interactive Map Preview -->
+            <div class="border border-blue-100 bg-white/90 backdrop-blur-sm shadow-xl rounded-lg">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-xl font-semibold text-blue-800 flex items-center">
+                        <span class="mr-2">🗺️</span>
+                        Mapa Interativo de Avistamentos
+                    </h3>
+                    <p class="text-gray-600 mt-2">Visualize os registros mais recentes da fauna marinha brasileira</p>
+                </div>
+                <div class="p-6">
+                    <div id="preview-map" class="h-64 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-6xl mb-4">🗺️</div>
+                            <p class="text-blue-700 font-medium">Mapa Interativo</p>
+                            <p class="text-blue-600 text-sm">Veja a seção completa abaixo</p>
+                        </div>
+                    </div>
+
+                    <!-- Recent Sightings -->
+                    <div class="mt-6">
+                        <h4 class="font-semibold text-gray-800 mb-4">Avistamentos Recentes</h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-blue-500 text-xl">🐋</span>
+                                    <div>
+                                        <p class="font-medium text-gray-800">Baleia Jubarte</p>
+                                        <p class="text-sm text-gray-600">Abrolhos, BA</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-600">2h atrás</p>
+                                    <span class="inline-block px-2 py-1 text-xs bg-blue-600 text-white rounded">Validado</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-blue-500 text-xl">🐢</span>
+                                    <div>
+                                        <p class="font-medium text-gray-800">Tartaruga Verde</p>
+                                        <p class="text-sm text-gray-600">Ubatuba, SP</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-600">4h atrás</p>
+                                    <span class="inline-block px-2 py-1 text-xs bg-gray-500 text-white rounded">Pendente</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-blue-500 text-xl">🐬</span>
+                                    <div>
+                                        <p class="font-medium text-gray-800">Golfinho Nariz-de-garrafa</p>
+                                        <p class="text-sm text-gray-600">Fernando de Noronha, PE</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-600">6h atrás</p>
+                                    <span class="inline-block px-2 py-1 text-xs bg-blue-600 text-white rounded">Validado</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="sobre" class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto text-center mb-16">
+                <h2 class="text-4xl font-bold mb-6 text-gray-800">Sobre o Projeto CostaID</h2>
+                <p class="text-xl text-gray-600 leading-relaxed">
+                    Uma plataforma inovadora que democratiza o monitoramento da biodiversidade marinha brasileira, conectando
+                    tecnologia de ponta com o poder da participação cidadã.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12 items-center mb-16">
+                <div>
+                    <h3 class="text-2xl font-bold mb-6 text-gray-800">Nossa Missão</h3>
+                    <p class="text-gray-600 mb-6 leading-relaxed">
+                        Desenvolver uma rede colaborativa que permita o registro, análise e compartilhamento de avistamentos de
+                        espécies marinhas em tempo real, fortalecendo a conservação marinha e o monitoramento climático através
+                        da ciência cidadã.
+                    </p>
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <span class="text-blue-500 text-2xl">🛡️</span>
+                            <div>
+                                <h4 class="font-semibold text-gray-800">Conservação Baseada em Dados</h4>
+                                <p class="text-gray-600 text-sm">Decisões informadas para proteção da fauna marinha</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <span class="text-blue-500 text-2xl">👥</span>
+                            <div>
+                                <h4 class="font-semibold text-gray-800">Engajamento Comunitário</h4>
+                                <p class="text-gray-600 text-sm">Conectando cidadãos, pesquisadores e instituições</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <span class="text-blue-500 text-2xl">🧠</span>
+                            <div>
+                                <h4 class="font-semibold text-gray-800">Tecnologia Inteligente</h4>
+                                <p class="text-gray-600 text-sm">IA para identificação automática de espécies</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="aspect-square bg-gradient-to-br from-blue-100 to-cyan-100 rounded-2xl overflow-hidden flex items-center justify-center">
+                        <div class="text-8xl">🌊</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Problem Statement -->
+            <div class="border border-orange-200 bg-orange-50 mb-16 rounded-lg">
+                <div class="p-6">
+                    <h3 class="text-orange-800 flex items-center text-xl font-semibold mb-4">
+                        <span class="mr-2">📈</span>
+                        O Problema Ambiental
+                    </h3>
+                    <p class="text-orange-700 leading-relaxed">
+                        Os oceanos brasileiros enfrentam desafios sem precedentes: mudanças climáticas, poluição, sobrepesca e
+                        perda de habitat. O monitoramento tradicional da biodiversidade marinha é limitado por recursos escassos
+                        e cobertura geográfica restrita. A ciência cidadã emerge como uma solução escalável para ampliar nossa
+                        capacidade de observação e resposta a essas ameaças ambientais.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Partners -->
+            <div class="text-center">
+                <h3 class="text-2xl font-bold mb-8 text-gray-800">Parceiros Institucionais</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="border border-blue-100 hover:shadow-md transition-shadow rounded-lg p-6 text-center">
+                        <div class="text-blue-500 text-4xl mb-3">🌍</div>
+                        <p class="font-medium text-gray-800">Universidade de São Paulo (USP)</p>
+                    </div>
+                    <div class="border border-blue-100 hover:shadow-md transition-shadow rounded-lg p-6 text-center">
+                        <div class="text-blue-500 text-4xl mb-3">🌍</div>
+                        <p class="font-medium text-gray-800">Universidade Federal de São Paulo (UNIFESP)</p>
+                    </div>
+                    <div class="border border-blue-100 hover:shadow-md transition-shadow rounded-lg p-6 text-center">
+                        <div class="text-blue-500 text-4xl mb-3">🌍</div>
+                        <p class="font-medium text-gray-800">Universidade Estadual Paulista (UNESP)</p>
+                    </div>
+                    <div class="border border-blue-100 hover:shadow-md transition-shadow rounded-lg p-6 text-center">
+                        <div class="text-blue-500 text-4xl mb-3">🌍</div>
+                        <p class="font-medium text-gray-800">Sistema de Informação sobre a Biodiversidade Brasileira (SIBBR)</p>
+                    </div>
+                    <div class="border border-blue-100 hover:shadow-md transition-shadow rounded-lg p-6 text-center">
+                        <div class="text-blue-500 text-4xl mb-3">🌍</div>
+                        <p class="font-medium text-gray-800">Global Biodiversity Information Facility (GBIF)</p>
+                    </div>
+                    <div class="border border-blue-100 hover:shadow-md transition-shadow rounded-lg p-6 text-center">
+                        <div class="text-blue-500 text-4xl mb-3">🌍</div>
+                        <p class="font-medium text-gray-800">Instituto Chico Mendes (ICMBio)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="como-funciona" class="py-20 bg-gradient-to-br from-blue-50 to-cyan-50">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto text-center mb-16">
+                <h2 class="text-4xl font-bold mb-6 text-gray-800">Como Funciona</h2>
+                <p class="text-xl text-gray-600">
+                    Um processo simples e tecnologicamente avançado para transformar suas observações em dados científicos
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-4 gap-8 mb-16">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-white text-2xl">📷</span>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-800">1. Capture</h3>
+                    <p class="text-gray-600 text-sm">
+                        Fotografe ou filme a espécie marinha com localização GPS automática
+                    </p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-white text-2xl">🧠</span>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-800">2. Análise IA</h3>
+                    <p class="text-gray-600 text-sm">
+                        Nossa IA identifica automaticamente a espécie usando modelos treinados
+                    </p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-violet-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-white text-2xl">👥</span>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-800">3. Validação</h3>
+                    <p class="text-gray-600 text-sm">Especialistas verificam e validam a identificação da espécie</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-white text-2xl">📊</span>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-800">4. Dados</h3>
+                    <p class="text-gray-600 text-sm">Informações são integradas ao banco de dados científico global</p>
+                </div>
+            </div>
+
+            <!-- Technologies -->
+            <div class="border border-blue-100 bg-white/80 backdrop-blur-sm rounded-lg">
+                <div class="p-6 text-center border-b border-gray-200">
+                    <h3 class="text-xl font-semibold text-blue-800">Tecnologias Utilizadas</h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="text-center">
+                            <div class="text-blue-500 text-5xl mb-3">🧠</div>
+                            <h4 class="font-semibold mb-2">Inteligência Artificial</h4>
+                            <p class="text-sm text-gray-600">TensorFlow.js, FastAPI para classificação de imagens</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-green-500 text-5xl mb-3">🗺️</div>
+                            <h4 class="font-semibold mb-2">Mapas Interativos</h4>
+                            <p class="text-sm text-gray-600">Leaflet.js com geolocalização em tempo real</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-purple-500 text-5xl mb-3">📊</div>
+                            <h4 class="font-semibold mb-2">Banco de Dados</h4>
+                            <p class="text-sm text-gray-600">Firebase/SQLite com integração SIBBR/GBIF</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-cyan-500 text-5xl mb-3">🌊</div>
+                            <h4 class="font-semibold mb-2">API Oceânica</h4>
+                            <p class="text-sm text-gray-600">Dados climáticos e ambientais em tempo real</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Map Section -->
+    <section id="mapa" class="py-20 bg-gradient-to-br from-blue-50 to-cyan-50">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto text-center mb-16">
+                <h2 class="text-4xl font-bold mb-6 text-gray-800">Mapa Interativo</h2>
+                <p class="text-xl text-gray-600">Explore os avistamentos da fauna marinha brasileira em tempo real</p>
+            </div>
+
+            <div class="border border-blue-100 bg-white/90 backdrop-blur-sm shadow-xl rounded-lg">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <h3 class="text-xl font-semibold text-blue-800 flex items-center">
+                            <span class="mr-2">🗺️</span>
+                            Filtros de Visualização
+                        </h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="filter-all" class="filter-btn bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                Todas
+                            </button>
+                            <button id="filter-mammals" class="filter-btn border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50">
+                                Mamíferos
+                            </button>
+                            <button id="filter-turtles" class="filter-btn border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50">
+                                Tartarugas
+                            </button>
+                            <button id="filter-fish" class="filter-btn border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50">
+                                Peixes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <!-- Map Controls -->
+                    <div class="flex flex-wrap gap-2 items-center justify-between mb-4">
+                        <div class="flex flex-wrap gap-2">
+                            <button id="layer-ocean" class="layer-btn bg-blue-600 text-white px-3 py-1 rounded text-sm flex items-center">
+                                <span class="mr-1">🌊</span>
+                                Oceânico
+                            </button>
+                            <button id="layer-satellite" class="layer-btn border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 flex items-center">
+                                <span class="mr-1">🛰️</span>
+                                Satélite
+                            </button>
+                            <button id="layer-street" class="layer-btn border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 flex items-center">
+                                <span class="mr-1">📍</span>
+                                Ruas
+                            </button>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button id="center-brazil" class="border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 flex items-center">
+                                <span class="mr-1">🧭</span>
+                                Brasil
+                            </button>
+                            <button id="fit-markers" class="border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 flex items-center">
+                                <span class="mr-1">👁️</span>
+                                Ver Todos
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Map Container -->
+                    <div class="relative h-96 rounded-lg overflow-hidden border border-blue-200 bg-blue-50">
+                        <div id="leaflet-map" class="w-full h-full"></div>
+
+                        <!-- Loading Overlay -->
+                        <div id="map-loading" class="absolute inset-0 bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-6xl mb-4 animate-pulse">📍</div>
+                                <p class="text-blue-700 font-medium">Carregando Mapa Leaflet...</p>
+                                <p class="text-blue-600 text-sm">Preparando visualização interativa</p>
+                            </div>
+                        </div>
+
+                        <!-- Legend -->
+                        <div class="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+                            <h4 class="font-semibold mb-2 text-sm text-gray-800">Legenda</h4>
+                            <div class="space-y-1 text-xs">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                    <span>Mamíferos (4)</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                                    <span>Tartarugas (2)</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+                                    <span>Peixes (2)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats -->
+                        <div class="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-blue-500">👁️</span>
+                                <span id="sightings-count" class="text-sm font-medium">8 avistamentos</span>
+                            </div>
+                        </div>
+
+                        <!-- Powered by Leaflet -->
+                        <div class="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-lg px-2 py-1 shadow-lg">
+                            <span class="text-xs text-gray-600">Powered by Leaflet.js</span>
+                        </div>
+                    </div>
+
+                    <!-- Sightings List -->
+                    <div id="sightings-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-6">
+                        <!-- Sightings will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="border border-blue-100 bg-blue-50 rounded-lg mt-6">
+                        <div class="p-4">
+                            <div class="flex items-start space-x-3">
+                                <span class="text-blue-500 text-xl">ℹ️</span>
+                                <div>
+                                    <h4 class="font-semibold text-blue-800 mb-1">Como usar o mapa</h4>
+                                    <p class="text-sm text-blue-700">
+                                        Clique nos marcadores para ver detalhes dos avistamentos. Use os controles para alternar entre
+                                        diferentes visualizações do mapa. Clique nos cards abaixo para navegar diretamente para um avistamento.
+                                        Mapa powered by Leaflet.js e OpenStreetMap.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section id="equipe" class="py-20 bg-gradient-to-br from-blue-50 to-cyan-50">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto text-center mb-16">
+                <h2 class="text-4xl font-bold mb-6 text-gray-800">Nossa Equipe</h2>
+                <p class="text-xl text-gray-600">
+                    Conheça os profissionais dedicados à conservação marinha e inovação tecnológica
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+                <div class="border border-blue-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 rounded-lg">
+                    <div class="p-6 text-center">
+                        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white text-3xl">👥</span>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">Guilherme Mateus</h3>
+                        <p class="text-sm text-blue-600 font-medium mb-3">Idealizador e Coordenador Científico</p>
+                        <p class="text-xs text-gray-600">Biólogo marinho especializado em conservação</p>
+                    </div>
+                </div>
+                <div class="border border-blue-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 rounded-lg">
+                    <div class="p-6 text-center">
+                        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white text-3xl">👥</span>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">Édrei Felipe</h3>
+                        <p class="text-sm text-blue-600 font-medium mb-3">Desenvolvedor Full-Stack</p>
+                        <p class="text-xs text-gray-600">Especialista em tecnologias web e IA</p>
+                    </div>
+                </div>
+                <div class="border border-blue-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 rounded-lg">
+                    <div class="p-6 text-center">
+                        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white text-3xl">👥</span>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">Dr. Marina Santos</h3>
+                        <p class="text-sm text-blue-600 font-medium mb-3">Orientadora Científica</p>
+                        <p class="text-xs text-gray-600">Professora de Oceanografia - USP</p>
+                    </div>
+                </div>
+                <div class="border border-blue-100 bg-white/80 backdrop-blur-sm hover:shadow-lg transition-all duration-300 rounded-lg">
+                    <div class="p-6 text-center">
+                        <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white text-3xl">👥</span>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">Prof. Carlos Lima</h3>
+                        <p class="text-sm text-blue-600 font-medium mb-3">Consultor em IA</p>
+                        <p class="text-xs text-gray-600">Especialista em Machine Learning - UNIFESP</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Credits -->
+            <div class="border border-blue-100 bg-white/90 backdrop-blur-sm rounded-lg">
+                <div class="p-6 text-center border-b border-gray-200">
+                    <h3 class="text-xl font-semibold text-blue-800">Créditos e Apoio</h3>
+                </div>
+                <div class="p-6 text-center">
+                    <p class="text-gray-600 mb-6">
+                        Este projeto é resultado da colaboração entre pesquisadores, desenvolvedores e instituições
+                        comprometidas com a conservação marinha brasileira.
+                    </p>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <span class="inline-block px-3 py-1 border border-blue-300 text-blue-600 rounded-full text-sm">
+                            Guilherme Mateus - Idealizador
+                        </span>
+                        <span class="inline-block px-3 py-1 border border-green-300 text-green-600 rounded-full text-sm">
+                            Édrei Felipe - Desenvolvedor
+                        </span>
+                        <span class="inline-block px-3 py-1 border border-purple-300 text-purple-600 rounded-full text-sm">
+                            Orientadores Científicos
+                        </span>
+                        <span class="inline-block px-3 py-1 border border-orange-300 text-orange-600 rounded-full text-sm">
+                            Apoiadores Institucionais
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-r from-blue-900 to-cyan-900 text-white py-16">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-400 rounded-full flex items-center justify-center">
+                            <span class="text-white text-xl">🌊</span>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold">CostaID</h3>
+                            <p class="text-xs text-cyan-200">Ciência Cidadã Marinha</p>
+                        </div>
+                    </div>
+                    <p class="text-cyan-100 text-sm leading-relaxed">
+                        Conectando tecnologia, ciência cidadã e conservação marinha para proteger a biodiversidade dos oceanos
+                        brasileiros.
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold mb-4 text-cyan-200">Navegação</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#inicio" class="text-cyan-100 hover:text-white transition-colors">Início</a></li>
+                        <li><a href="#sobre" class="text-cyan-100 hover:text-white transition-colors">Sobre</a></li>
+                        <li><a href="#como-funciona" class="text-cyan-100 hover:text-white transition-colors">Como Funciona</a></li>
+                        <li><a href="#contribua" class="text-cyan-100 hover:text-white transition-colors">Contribua</a></li>
+                        <li><a href="#mapa" class="text-cyan-100 hover:text-white transition-colors">Mapa</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold mb-4 text-cyan-200">Recursos</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#blog" class="text-cyan-100 hover:text-white transition-colors">Blog</a></li>
+                        <li><a href="#equipe" class="text-cyan-100 hover:text-white transition-colors">Equipe</a></li>
+                        <li><a href="#" class="text-cyan-100 hover:text-white transition-colors">API</a></li>
+                        <li><a href="#" class="text-cyan-100 hover:text-white transition-colors">Documentação</a></li>
+                        <li><a href="#" class="text-cyan-100 hover:text-white transition-colors">Suporte</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold mb-4 text-cyan-200">Contato</h4>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-cyan-300">📧</span>
+                            <span class="text-cyan-100">contato@costaid.org.br</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-cyan-300">📞</span>
+                            <span class="text-cyan-100">+55 (11) 9999-9999</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-cyan-300">📍</span>
+                            <span class="text-cyan-100">São Paulo, Brasil</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-cyan-700 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-cyan-200 text-sm">© 2024 CostaID. Todos os direitos reservados.</p>
+                    <div class="flex space-x-6 mt-4 md:mt-0">
+                        <a href="#" class="text-cyan-200 hover:text-white text-sm transition-colors">Política de Privacidade</a>
+                        <a href="#" class="text-cyan-200 hover:text-white text-sm transition-colors">Termos de Uso</a>
+                        <a href="#" class="text-cyan-200 hover:text-white text-sm transition-colors">Licença</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Main JavaScript -->
+    <script>
+        // Mobile menu functionality
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuIcon = document.getElementById('menu-icon');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+            menuIcon.textContent = mobileMenu.classList.contains('hidden') ? '☰' : '✕';
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    // Close mobile menu if open
+                    mobileMenu.classList.add('hidden');
+                    menuIcon.textContent = '☰';
+                }
+            });
+        });
+
+        // Sightings data
+        const realSightings = [
+            {
+                id: "1",
+                species: "Baleia Jubarte",
+                scientificName: "Megaptera novaeangliae",
+                location: "Parque Nacional Marinho de Abrolhos, BA",
+                coordinates: { lat: -17.9578, lng: -38.6917 },
+                time: "2h atrás",
+                status: "validated",
+                category: "mammals",
+                observer: "João Silva - Biólogo Marinho",
+                description: "Grupo de 3 indivíduos adultos avistados durante migração reprodutiva. Comportamento de salto observado.",
+                depth: 50,
+                temperature: 24.5,
+            },
+            {
+                id: "2",
+                species: "Tartaruga Verde",
+                scientificName: "Chelonia mydas",
+                location: "Ubatuba, SP",
+                coordinates: { lat: -23.4336, lng: -45.0838 },
+                time: "4h atrás",
+                status: "pending",
+                category: "turtles",
+                observer: "Maria Santos - Mergulhadora",
+                description: "Tartaruga juvenil se alimentando em área de algas marinhas. Aproximadamente 40cm de carapaça.",
+                depth: 15,
+                temperature: 22.1,
+            },
+            {
+                id: "3",
+                species: "Golfinho Nariz-de-garrafa",
+                scientificName: "Tursiops truncatus",
+                location: "Fernando de Noronha, PE",
+                coordinates: { lat: -3.8536, lng: -32.4297 },
+                time: "6h atrás",
+                status: "validated",
+                category: "mammals",
+                observer: "Carlos Lima - Guia de Mergulho",
+                description: "Pod de 8 golfinhos interagindo com mergulhadores. Comportamento curioso e brincalhão.",
+                depth: 30,
+                temperature: 26.8,
+            },
+            {
+                id: "4",
+                species: "Peixe-boi Marinho",
+                scientificName: "Trichechus manatus",
+                location: "Maragogi, AL",
+                coordinates: { lat: -9.0122, lng: -35.2225 },
+                time: "8h atrás",
+                status: "validated",
+                category: "mammals",
+                observer: "Ana Costa - Pesquisadora ICMBio",
+                description: "Fêmea adulta com filhote em área de proteção. Comportamento de amamentação observado.",
+                depth: 8,
+                temperature: 25.2,
+            },
+            {
+                id: "5",
+                species: "Tubarão Baleia",
+                scientificName: "Rhincodon typus",
+                location: "Laje de Santos, SP",
+                coordinates: { lat: -24.3167, lng: -46.1833 },
+                time: "12h atrás",
+                status: "validated",
+                category: "fish",
+                observer: "Pedro Oliveira - Mergulhador Técnico",
+                description: "Indivíduo juvenil de aproximadamente 8 metros se alimentando de plâncton na superfície.",
+                depth: 5,
+                temperature: 21.8,
+            },
+            {
+                id: "6",
+                species: "Tartaruga Cabeçuda",
+                scientificName: "Caretta caretta",
+                location: "Praia do Forte, BA",
+                coordinates: { lat: -12.5833, lng: -38.0 },
+                time: "1 dia atrás",
+                status: "validated",
+                category: "turtles",
+                observer: "Lucia Ferreira - Projeto TAMAR",
+                description: "Fêmea adulta retornando ao mar após processo de desova. Monitoramento via satélite ativo.",
+                depth: 2,
+                temperature: 24.0,
+            },
+            {
+                id: "7",
+                species: "Boto Cinza",
+                scientificName: "Sotalia guianensis",
+                location: "Baía de Guanabara, RJ",
+                coordinates: { lat: -22.8305, lng: -43.2192 },
+                time: "18h atrás",
+                status: "validated",
+                category: "mammals",
+                observer: "Roberto Mendes - Pescador Local",
+                description: "Grupo de 12 botos se alimentando próximo à entrada da baía. Comportamento cooperativo.",
+                depth: 25,
+                temperature: 23.5,
+            },
+            {
+                id: "8",
+                species: "Raia Manta",
+                scientificName: "Mobula birostris",
+                location: "Arquipélago de São Pedro e São Paulo",
+                coordinates: { lat: 0.9167, lng: -29.35 },
+                time: "2 dias atrás",
+                status: "validated",
+                category: "fish",
+                observer: "Dra. Fernanda Lopes - UFPE",
+                description: "Indivíduo adulto com envergadura de aproximadamente 4 metros. Estação de limpeza ativa.",
+                depth: 15,
+                temperature: 27.2,
+            },
+        ];
+
+        // Map variables
+        let map = null;
+        let markers = [];
+        let currentLayer = null;
+        let selectedSpecies = 'all';
+        let mapLayer = 'ocean';
+
+        // Initialize map
+        function initializeMap() {
+            // Hide loading overlay
+            document.getElementById('map-loading').style.display = 'none';
+
+            // Initialize map
+            map = L.map('leaflet-map', {
+                center: [-14.235, -51.9253], // Centro do Brasil
+                zoom: 5,
+                zoomControl: true,
+                scrollWheelZoom: true,
+                doubleClickZoom: true,
+                dragging: true,
+            });
+
+            // Add initial layer
+            updateMapLayer();
+
+            // Add markers
+            updateMarkers();
+
+            // Update sightings list
+            updateSightingsList();
+        }
+
+        // Update map layer
+        function updateMapLayer() {
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
+
+            switch (mapLayer) {
+                case 'satellite':
+                    currentLayer = L.tileLayer(
+                        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                        {
+                            attribution: '© Esri',
+                            maxZoom: 18,
+                        }
+                    );
+                    break;
+                case 'street':
+                    currentLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors',
+                        maxZoom: 19,
+                    });
+                    break;
+                default: // ocean
+                    currentLayer = L.tileLayer(
+                        'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
+                        {
+                            attribution: '© Esri',
+                            maxZoom: 16,
+                        }
+                    );
+            }
+
+            currentLayer.addTo(map);
+        }
+
+        // Get marker color
+        function getMarkerColor(category) {
+            switch (category) {
+                case 'mammals':
+                    return '#3b82f6'; // Blue
+                case 'turtles':
+                    return '#10b981'; // Green
+                case 'fish':
+                    return '#8b5cf6'; // Purple
+                default:
+                    return '#f59e0b'; // Orange
+            }
+        }
+
+        // Get emoji for category
+        function getEmoji(category) {
+            switch (category) {
+                case 'mammals':
+                    return '🐋';
+                case 'turtles':
+                    return '🐢';
+                case 'fish':
+                    return '🐟';
+                default:
+                    return '📍';
+            }
+        }
+
+        // Create custom icon
+        function createCustomIcon(category, color) {
+            return L.divIcon({
+                html: `
+                    <div style="
+                        background-color: ${color};
+                        width: 30px;
+                        height: 30px;
+                        border-radius: 50%;
+                        border: 3px solid white;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 16px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                    " onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+                        ${getEmoji(category)}
+                    </div>
+                `,
+                className: 'custom-marker',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+                popupAnchor: [0, -15],
+            });
+        }
+
+        // Create popup content
+        function createPopupContent(sighting) {
+            return `
+                <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 320px;">
+                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #3b82f6, #06b6d4); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">
+                            ${getEmoji(sighting.category)}
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <h3 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #1f2937; line-height: 1.2;">
+                                ${sighting.species}
+                            </h3>
+                            <p style="margin: 0 0 6px 0; font-size: 12px; color: #6b7280; font-style: italic;">
+                                ${sighting.scientificName}
+                            </p>
+                            <span style="display: inline-block; padding: 2px 6px; font-size: 10px; border-radius: 8px; 
+                                         background-color: ${sighting.status === 'validated' ? '#10b981' : '#f59e0b'}; 
+                                         color: white; font-weight: 500;">
+                                ${sighting.status === 'validated' ? '✓ Validado' : '⏳ Pendente'}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <p style="margin: 0 0 8px 0; font-size: 13px; color: #4b5563; line-height: 1.4;">
+                            📍 ${sighting.location}
+                        </p>
+                        <p style="margin: 0 0 8px 0; font-size: 13px; color: #4b5563; line-height: 1.4;">
+                            ${sighting.description}
+                        </p>
+                    </div>
+
+                    ${sighting.depth && sighting.temperature ? `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; 
+                                padding: 8px; background-color: #f8fafc; border-radius: 6px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 11px; color: #6b7280; margin-bottom: 2px;">🌊 Profundidade</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${sighting.depth}m</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 11px; color: #6b7280; margin-bottom: 2px;">🌡️ Temperatura</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${sighting.temperature}°C</div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <div style="padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #6b7280;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span><strong>👤 ${sighting.observer}</strong></span>
+                            <span>🕒 ${sighting.time}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update markers
+        function updateMarkers() {
+            if (!map) return;
+
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            // Filter sightings
+            const filteredSightings = selectedSpecies === 'all' 
+                ? realSightings 
+                : realSightings.filter(sighting => sighting.category === selectedSpecies);
+
+            // Add new markers
+            filteredSightings.forEach(sighting => {
+                const markerColor = getMarkerColor(sighting.category);
+                const markerIcon = createCustomIcon(sighting.category, markerColor);
+
+                const marker = L.marker([sighting.coordinates.lat, sighting.coordinates.lng], {
+                    icon: markerIcon,
+                }).addTo(map);
+
+                // Create popup
+                const popupContent = createPopupContent(sighting);
+                marker.bindPopup(popupContent, {
+                    maxWidth: 350,
+                    className: 'custom-popup',
+                });
+
+                marker.on('click', () => {
+                    map.setView([sighting.coordinates.lat, sighting.coordinates.lng], 10);
+                });
+
+                markers.push(marker);
+            });
+
+            // Update sightings count
+            document.getElementById('sightings-count').textContent = `${filteredSightings.length} avistamentos`;
+        }
+
+        // Update sightings list
+        function updateSightingsList() {
+            const filteredSightings = selectedSpecies === 'all' 
+                ? realSightings 
+                : realSightings.filter(sighting => sighting.category === selectedSpecies);
+
+            const sightingsList = document.getElementById('sightings-list');
+            sightingsList.innerHTML = '';
+
+            filteredSightings.slice(0, 6).forEach(sighting => {
+                const sightingCard = document.createElement('div');
+                sightingCard.className = 'cursor-pointer hover:shadow-md transition-all duration-300 border border-gray-200 hover:border-blue-300 rounded-lg';
+                sightingCard.innerHTML = `
+                    <div class="p-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <h4 class="font-semibold text-sm text-gray-800 line-clamp-1">${sighting.species}</h4>
+                            <span class="inline-block px-2 py-1 text-xs ${sighting.status === 'validated' ? 'bg-blue-600 text-white' : 'bg-gray-500 text-white'} rounded">
+                                ${sighting.status === 'validated' ? '✓' : '⏳'}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600 mb-2 line-clamp-1">${sighting.location}</p>
+                        <p class="text-xs text-gray-500 mb-3 line-clamp-2">${sighting.description}</p>
+                        <div class="flex items-center justify-between text-xs text-gray-500">
+                            <span>${sighting.observer.split(' - ')[0]}</span>
+                            <span>${sighting.time}</span>
+                        </div>
+                        ${sighting.depth && sighting.temperature ? `
+                        <div class="flex justify-between mt-2 pt-2 border-t border-gray-100 text-xs">
+                            <span>🌊 ${sighting.depth}m</span>
+                            <span>🌡️ ${sighting.temperature}°C</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                sightingCard.addEventListener('click', () => {
+                    if (map) {
+                        map.setView([sighting.coordinates.lat, sighting.coordinates.lng], 12);
+                    }
+                });
+
+                sightingsList.appendChild(sightingCard);
+            });
+        }
+
+        // Filter button handlers
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update active filter button
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.className = 'filter-btn border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50';
+                });
+                e.target.className = 'filter-btn bg-blue-600 text-white px-3 py-1 rounded text-sm';
+
+                // Update selected species
+                const filterId = e.target.id;
+                if (filterId === 'filter-all') selectedSpecies = 'all';
+                else if (filterId === 'filter-mammals') selectedSpecies = 'mammals';
+                else if (filterId === 'filter-turtles') selectedSpecies = 'turtles';
+                else if (filterId === 'filter-fish') selectedSpecies = 'fish';
+
+                // Update markers and list
+                updateMarkers();
+                updateSightingsList();
+            });
+        });
+
+        // Layer button handlers
+        document.querySelectorAll('.layer-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update active layer button
+                document.querySelectorAll('.layer-btn').forEach(b => {
+                    b.className = 'layer-btn border border-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-50 flex items-center';
+                });
+                e.target.className = 'layer-btn bg-blue-600 text-white px-3 py-1 rounded text-sm flex items-center';
+
+                // Update map layer
+                const layerId = e.target.id;
+                if (layerId === 'layer-ocean') mapLayer = 'ocean';
+                else if (layerId === 'layer-satellite') mapLayer = 'satellite';
+                else if (layerId === 'layer-street') mapLayer = 'street';
+
+                updateMapLayer();
+            });
+        });
+
+        // Control button handlers
+        document.getElementById('center-brazil').addEventListener('click', () => {
+            if (map) {
+                map.setView([-14.235, -51.9253], 5);
+            }
+        });
+
+        document.getElementById('fit-markers').addEventListener('click', () => {
+            if (map && markers.length > 0) {
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        });
+
+        // Initialize map when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Small delay to ensure Leaflet is fully loaded
+            setTimeout(initializeMap, 500);
+        });
+    </script>
+</body>
+</html>
